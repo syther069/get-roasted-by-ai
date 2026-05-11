@@ -1,0 +1,17 @@
+from genlayer import *
+
+class RoastConsensus(Contract):
+
+    def __init__(self):
+        self.latest_roast = ""
+
+    @external
+    def submit_roast(self, text: str):
+
+        roast = f"Consensus roast: {text}"
+
+        self.latest_roast = roast
+
+    @view
+    def get_latest_roast(self) -> str:
+        return self.latest_roast
