@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 async function generateTextRoast(input: string) {
 
   const response = await fetch(
-    "https://entered-analyze-dam-dealing.trycloudflare.com/ollama/generate",
+    "https://antibody-oppressed-wincing.ngrok-free.dev/api/generate",
     {
       method: "POST",
 
