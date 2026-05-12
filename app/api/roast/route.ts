@@ -1,68 +1,5 @@
 import { NextResponse } from "next/server"
 
-async function generateTextRoast(input: string) {
-
-  const response = await fetch(
-    "https://antibody-oppressed-wincing.ngrok-free.dev/api/generate",
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify({
-        model: "mistral",
-
-        prompt: `
-You are a brutally funny AI roast judge.
-
-RULES:
-- Maximum 2 sentences
-- Funny
-- Sarcastic
-- Internet humor
-- No long paragraphs
-- Be concise
-
-USER:
-${input}
-
-FINAL ROAST:
-`,
-
-        stream: false,
-
-        options: {
-          temperature: 0.9,
-          num_predict: 60
-        }
-      })
-    }
-  )
-
-  // SAFE TEXT RESPONSE
-  const text = await response.text()
-
-  if (!text) {
-    throw new Error("Empty response from Ollama")
-  }
-
-  let data
-
-  try {
-    data = JSON.parse(text)
-
-  } catch (err) {
-
-    console.error("Invalid JSON:", text)
-
-    throw new Error("Bad JSON response")
-  }
-
-  return data.response || "AI refused to roast you."
-}
-
 export async function POST(req: Request) {
 
   try {
@@ -72,7 +9,57 @@ export async function POST(req: Request) {
     const input =
       formData.get("input")?.toString() || ""
 
-    const roast = await generateTextRoast(input)
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+
+          Authorization:
+            `Bearer ${process.env.GROQ_API_KEY}`
+        },
+
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+
+          messages: [
+            {
+              role: "system",
+
+              content: `
+You are a savage internet roast AI.
+
+RULES:
+- Max 2 sentences
+- Funny
+- Sarcastic
+- Meme humor
+- Teasing
+- Brutal but entertaining
+- No long paragraphs
+`
+            },
+
+            {
+              role: "user",
+              content: input
+            }
+          ],
+
+          temperature: 0.9,
+
+          max_tokens: 80
+        })
+      }
+    )
+
+    const data = await response.json()
+
+    const roast =
+      data.choices?.[0]?.message?.content ||
+      "AI refused to roast you."
 
     return NextResponse.json({
       results: [
