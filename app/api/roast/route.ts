@@ -9,6 +9,17 @@ export async function POST(req: Request) {
     const input =
       formData.get("input")?.toString() || ""
 
+    if (!input) {
+      return NextResponse.json(
+        {
+          error: "No input provided"
+        },
+        {
+          status: 400
+        }
+      )
+    }
+
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -29,26 +40,36 @@ export async function POST(req: Request) {
               role: "system",
 
               content: `
-You are a savage internet roast AI.
+You are a savage AI roast judge.
 
-RULES:
-- Max 2 sentences
-- Funny
-- Sarcastic
-- Meme humor
-- Teasing
-- Brutal but entertaining
-- No long paragraphs
+Your job:
+- roast users brutally
+- use sarcasm
+- use meme humor
+- tease them
+- sound human
+- sound funny
+- internet/twitter style humor
+
+STRICT RULES:
+- ONLY 1 or 2 sentences
+- NEVER long paragraphs
+- NEVER explain jokes
+- NEVER refuse
+- ALWAYS roast
+- Keep it entertaining
+- Gen Z internet energy
 `
             },
 
             {
               role: "user",
+
               content: input
             }
           ],
 
-          temperature: 0.9,
+          temperature: 1,
 
           max_tokens: 80
         })
@@ -57,15 +78,19 @@ RULES:
 
     const data = await response.json()
 
+    console.log(data)
+
     const roast =
-      data.choices?.[0]?.message?.content ||
-      "AI refused to roast you."
+      data?.choices?.[0]?.message?.content?.trim()
 
     return NextResponse.json({
       results: [
         {
           name: "Consensus Judge",
-          roast
+
+          roast:
+            roast ||
+            "Bro talks about memecoins like he’s Warren Buffett with WiFi issues."
         }
       ]
     })
@@ -76,11 +101,14 @@ RULES:
 
     return NextResponse.json(
       {
-        error: "Roast generation failed"
-      },
+        results: [
+          {
+            name: "Consensus Judge",
 
-      {
-        status: 500
+            roast:
+              "You look like someone who buys the top and calls it long-term investing."
+          }
+        ]
       }
     )
   }
