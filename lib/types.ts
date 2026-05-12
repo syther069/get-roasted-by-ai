@@ -1,9 +1,7 @@
-export type RoastEntry = {
+export interface RoastEntry {
   id: string
-
-  input: string
-
+  username: string
+  roast: string
   score: number
-
-  verdict: string
+  createdAt: string
 }
