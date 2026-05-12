@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
       formData.get("input")?.toString().trim() || "";
 
     if (!input) {
+
       return NextResponse.json(
         {
           error: "No input provided",
@@ -26,14 +27,22 @@ export async function POST(req: NextRequest) {
     }
 
     const roastStyles = [
-      "sarcastic internet humor",
+
+      "dry sarcastic internet humor",
+
       "twitter quote tweet energy",
+
       "group chat roasting",
-      "dry observational humor",
-      "gen z meme sarcasm",
+
       "chronically online humor",
-      "smart teasing",
-      "subtle mockery",
+
+      "subtle psychological mockery",
+
+      "observational meme humor",
+
+      "gen z sarcasm",
+
+      "internet comment section energy",
     ];
 
     const randomStyle =
@@ -48,13 +57,9 @@ export async function POST(req: NextRequest) {
 
         temperature: 1.2,
 
-        max_tokens: 70,
-
         top_p: 0.95,
 
-        frequency_penalty: 1,
-
-        presence_penalty: 1,
+        max_tokens: 70,
 
         messages: [
 
@@ -64,16 +69,14 @@ export async function POST(req: NextRequest) {
             content: `
 You are an elite internet roast AI.
 
-Your job is NOT to summarize user text.
-
-Your job is to:
-- understand the vibe
-- understand the behavior
+Your job:
+- analyze the deeper vibe behind the content
 - detect cringe
 - detect fake hustle
-- detect try-hard energy
-- detect social media archetypes
-- react sarcastically like a real internet user
+- detect attention seeking
+- detect try-hard behavior
+- detect internet archetypes
+- react like a sarcastic Twitter user
 
 STYLE:
 ${randomStyle}
@@ -81,15 +84,14 @@ ${randomStyle}
 STRICT RULES:
 - maximum 2 sentences
 - always sound human
-- always sound funny
+- always sound witty
+- never summarize
 - no generic insults
-- no repetitive formats
-- no long paragraphs
-- no fake villain speeches
-- no moral lectures
-- never explain the joke
-- do not repeat professions/names unnecessarily
-- make every response feel fresh
+- avoid repetitive formats
+- avoid profession farming
+- avoid repeating names
+- sound internet-native
+- make every roast feel unique
 `
           },
 
@@ -97,7 +99,7 @@ STRICT RULES:
             role: "user",
 
             content: `
-Analyze this content and roast the deeper vibe behind it:
+Analyze and roast this content:
 
 "${input}"
 `
@@ -105,8 +107,10 @@ Analyze this content and roast the deeper vibe behind it:
         ]
       });
 
+    console.log("FULL GROQ RESPONSE:", completion);
+
     const roast =
-      completion.choices?.[0]?.message?.content?.trim();
+      completion?.choices?.[0]?.message?.content?.trim();
 
     return NextResponse.json({
       results: [
@@ -115,28 +119,23 @@ Analyze this content and roast the deeper vibe behind it:
 
           roast:
             roast ||
-            "This has the energy of someone who says 'big things coming soon' every week."
+            "This post feels algorithmically generated for engagement farming."
         }
       ]
     });
 
-  } catch (error) {
+  } catch (error: any) {
 
-    console.error(error);
+    console.error("FULL ERROR:", error);
 
     return NextResponse.json(
       {
-        results: [
-          {
-            name: "Consensus Judge",
-
-            roast:
-              "Your online aura feels like a startup pitch made entirely from buzzwords."
-          }
-        ]
+        error:
+          error?.message ||
+          "Unknown Groq API error",
       },
       {
-        status: 200,
+        status: 500,
       }
     );
   }
