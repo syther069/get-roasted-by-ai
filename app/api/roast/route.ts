@@ -50,7 +50,7 @@ async function generateImageRoast(
   input: string
 ) {
   const response = await fetch(
-    "http://localhost:11434/api/generate",
+    "https://skin-momentum-albany-ipaq.trycloudflare.com/api/generate",
     {
       method: "POST",
 
