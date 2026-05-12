@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const formData = await req.formData()
 
     const input =
-      formData.get("input")?.toString() || ""
+      formData.get("input")?.toString().trim() || ""
 
     if (!input) {
       return NextResponse.json(
@@ -33,43 +33,56 @@ export async function POST(req: Request) {
         },
 
         body: JSON.stringify({
+
           model: "llama-3.1-8b-instant",
 
           messages: [
+
             {
               role: "system",
 
               content: `
-You are a savage AI roast judge.
+You are an elite internet roast AI.
 
-Your job:
-- roast users brutally
+Your roasts MUST:
+- directly target the user's text
+- feel unique every time
 - use sarcasm
 - use meme humor
-- tease them
-- sound human
-- sound funny
-- internet/twitter style humor
+- sound like Twitter/X roasting
+- tease the person intelligently
+- feel human and witty
 
 STRICT RULES:
-- ONLY 1 or 2 sentences
-- NEVER long paragraphs
-- NEVER explain jokes
-- NEVER refuse
-- ALWAYS roast
-- Keep it entertaining
-- Gen Z internet energy
+- Maximum 2 sentences
+- NEVER repeat generic insults
+- NEVER say "AI refused"
+- NEVER explain
+- NEVER act polite
+- ALWAYS roast based on THEIR input
+- Make every roast different
+- Use internet culture and Gen Z humor
 `
             },
 
             {
               role: "user",
 
-              content: input
+              content: `
+Roast this person brutally based on this text:
+
+"${input}"
+`
             }
           ],
 
-          temperature: 1,
+          temperature: 1.4,
+
+          top_p: 0.95,
+
+          frequency_penalty: 1,
+
+          presence_penalty: 1,
 
           max_tokens: 80
         })
@@ -90,7 +103,7 @@ STRICT RULES:
 
           roast:
             roast ||
-            "Bro talks about memecoins like he’s Warren Buffett with WiFi issues."
+            `Bro typed "${input}" like LinkedIn and Twitter had a failed crypto baby.`
         }
       ]
     })
@@ -99,17 +112,15 @@ STRICT RULES:
 
     console.error(error)
 
-    return NextResponse.json(
-      {
-        results: [
-          {
-            name: "Consensus Judge",
+    return NextResponse.json({
+      results: [
+        {
+          name: "Consensus Judge",
 
-            roast:
-              "You look like someone who buys the top and calls it long-term investing."
-          }
-        ]
-      }
-    )
+          roast:
+            "Your digital aura screams 'future rugpull victim.'"
+        }
+      ]
+    })
   }
 }
