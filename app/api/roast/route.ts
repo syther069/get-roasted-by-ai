@@ -1,10 +1,6 @@
 import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 const ROAST_STYLES = [
   "reply guy energy — dry, deadpan, one-liner",
   "quote tweet savage — brief, cuts deep, no mercy",
@@ -131,6 +127,11 @@ Deliver the roast. React to the specific content. Make it hurt with accuracy.`;
 }
 
 export async function POST(request: NextRequest) {
+  // Groq client initialized inside handler to avoid build-time env var access
+  const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY,
+  });
+
   try {
     const formData = await request.formData();
 
@@ -200,11 +201,9 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildSystemPrompt();
     const userPrompt = buildUserPrompt(content, contentType);
 
-    // CHANGE 3: Increased temperature range for more creative, diverse outputs
     const temperatureVariance = 0.95 + Math.random() * 0.3;
 
     const completion = await groq.chat.completions.create({
-      // CHANGE 1: Upgraded to more capable model for nuanced internet humor
       model: "llama-3.3-70b-versatile",
       messages: [
         {
@@ -215,10 +214,8 @@ export async function POST(request: NextRequest) {
           role: "user",
           content: userPrompt,
         },
-        // CHANGE 2: Removed artificial variation seed message block
       ],
       temperature: temperatureVariance,
-      // CHANGE 3: Reduced token budget for punchier, tweet-like responses
       max_tokens: 75,
       top_p: 0.95,
     });
