@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 
 async function generateTextRoast(input: string) {
+
   const response = await fetch(
-    "http://localhost:11434/api/generate",
+    "https://skin-momentum-albany-ipaq.trycloudflare.com/api/generate",
     {
       method: "POST",
 
@@ -14,15 +15,15 @@ async function generateTextRoast(input: string) {
         model: "mistral",
 
         prompt: `
-You are a brutally funny internet roast AI.
+You are a brutally funny AI roast judge.
 
 RULES:
 - Maximum 2 sentences
-- Funny and sarcastic
-- Meme/internet humor
-- No paragraphs
-- No explanations
-- Be concise and savage
+- Funny
+- Sarcastic
+- Internet humor
+- No long paragraphs
+- Be concise
 
 USER:
 ${input}
@@ -40,101 +41,43 @@ FINAL ROAST:
     }
   )
 
-  const data = await response.json()
+  // SAFE TEXT RESPONSE
+  const text = await response.text()
 
-  return data.response
-}
+  if (!text) {
+    throw new Error("Empty response from Ollama")
+  }
 
-async function generateImageRoast(
-  imageBase64: string,
-  input: string
-) {
-  const response = await fetch(
-    "https://skin-momentum-albany-ipaq.trycloudflare.com/api/generate",
-    {
-      method: "POST",
+  let data
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+  try {
+    data = JSON.parse(text)
 
-      body: JSON.stringify({
-        model: "llava",
+  } catch (err) {
 
-        prompt: `
-Analyze this image and roast it.
+    console.error("Invalid JSON:", text)
 
-Extra context from user:
-${input}
+    throw new Error("Bad JSON response")
+  }
 
-RULES:
-- Maximum 2 sentences
-- Funny
-- Sarcastic
-- Internet humor
-- Teasing tone
-- No explanations
-- No long outputs
-
-FINAL ROAST:
-`,
-
-        images: [imageBase64],
-
-        stream: false,
-
-        options: {
-          temperature: 0.9,
-          num_predict: 60
-        }
-      })
-    }
-  )
-
-  const data = await response.json()
-
-  return data.response
+  return data.response || "AI refused to roast you."
 }
 
 export async function POST(req: Request) {
+
   try {
+
     const formData = await req.formData()
 
     const input =
       formData.get("input")?.toString() || ""
 
-    const image =
-      formData.get("image") as File | null
-
-    // IMAGE MODE
-    if (image) {
-
-      const bytes = await image.arrayBuffer()
-
-      const buffer = Buffer.from(bytes)
-
-      const roast = await generateImageRoast(
-        buffer.toString("base64"),
-        input
-      )
-
-      return NextResponse.json({
-        results: [
-          {
-            name: "LLaVA Vision Consensus",
-            roast
-          }
-        ]
-      })
-    }
-
-    // TEXT MODE
     const roast = await generateTextRoast(input)
 
     return NextResponse.json({
       results: [
         {
-          name: "Mistral Consensus",
+          name: "Consensus Judge",
           roast
         }
       ]
