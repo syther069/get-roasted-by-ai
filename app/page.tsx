@@ -3,7 +3,7 @@ import { Footer } from "@/components/footer"
 import { Hero } from "@/components/hero"
 import { Leaderboard } from "@/components/leaderboard"
 import Navbar from "@/components/navbar"
-import { RoastForm } from "@/components/roast-form"
+import RoastForm from "@/components/roast-form"
 
 export default function HomePage() {
   return (
