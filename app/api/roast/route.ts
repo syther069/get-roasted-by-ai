@@ -1,68 +1,4 @@
 import Groq from "groq-sdk";
-import { NextRequest, NextResponse } from "next/server";
-
-export async function POST(req: NextRequest) {
-
-  try {
-
-    const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
-    });
-
-    const formData = await req.formData();
-
-    const input =
-      formData.get("input")?.toString().trim() || "";
-
-    if (!input) {
-
-      return NextResponse.json(
-        {
-          error: "No input provided",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const roastStyles = [
-
-      "dry sarcastic internet humor",
-
-      "twitter quote tweet energy",
-
-      "group chat roasting",
-
-      "chronically online humor",
-
-      "subtle psychological mockery",
-
-      "observational meme humor",
-
-      "gen z sarcasm",
-
-      "internet comment section energy",
-    ];
-
-    const randomStyle =
-      roastStyles[
-        Math.floor(Math.random() * roastStyles.length)
-      ];
-
-    const completion =
-      await groq.chat.completions.create({
-
-        model: "llama-3.3-70b-versatile",
-
-        temperature: 1.2,
-
-        top_p: 0.95,
-
-        max_tokens: 70,
-
-        messages: [
-
           {
             role: "system",
 
@@ -106,8 +42,6 @@ Analyze and roast this content:
           }
         ]
       });
-
-    console.log("FULL GROQ RESPONSE:", completion);
 
     const roast =
       completion?.choices?.[0]?.message?.content?.trim();
