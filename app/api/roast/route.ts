@@ -1,5 +1,7 @@
 import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
 const ROAST_STYLES = [
   "reply guy energy — dry, deadpan, one-liner",
@@ -54,131 +56,195 @@ function getRandomElements<T>(arr: T[], count: number): T[] {
 }
 
 function buildSystemPrompt(): string {
-  const style = ROAST_STYLES[Math.floor(Math.random() * ROAST_STYLES.length)];
-  const tone = TONE_MODIFIERS[Math.floor(Math.random() * TONE_MODIFIERS.length)];
-  const archetypes = getRandomElements(INTERNET_ARCHETYPES, 4);
-  const avoidPatterns = getRandomElements(AVOID_PATTERNS, 4);
+  const style =
+    ROAST_STYLES[Math.floor(Math.random() * ROAST_STYLES.length)];
 
-  return `You are a razor-sharp internet-native roast machine. Your job is to deliver one devastating, witty roast in 1-2 sentences max.
+  const tone =
+    TONE_MODIFIERS[Math.floor(Math.random() * TONE_MODIFIERS.length)];
+
+  const archetypes = getRandomElements(
+    INTERNET_ARCHETYPES,
+    4
+  );
+
+  const avoidPatterns = getRandomElements(
+    AVOID_PATTERNS,
+    4
+  );
+
+  return `You are a razor-sharp internet-native roast machine.
 
 CURRENT STYLE MODE: ${style}
 TONE INSTRUCTION: ${tone}
 
 YOUR ROAST MUST:
-- React to the VIBE, BEHAVIOR PATTERN, and PSYCHOLOGICAL ENERGY of the content
-- Feel like a perfect tweet reply or group chat response
-- Be specific to what's actually in the content
-- Sound like a human who has spent too long on the internet and developed a sixth sense for cringe
-- Create humor from pattern recognition, not name-dropping
+- React to the vibe and behavior pattern
+- Feel like a real internet reply
+- Be funny and devastating
+- Be specific to the content
+- Never sound repetitive
 
-INTERNET ARCHETYPES TO WATCH FOR (if applicable):
+ARCHETYPES:
 ${archetypes.map((a) => `- ${a}`).join("\n")}
-
-GOOD ROAST EXAMPLES:
-- "This bio looks like it asks people to join a Discord server before saying hello."
-- "You type like your screen time report should be classified."
-- "This has the energy of someone who says 'big things coming soon' every 3 business days."
-- "Your personality feels algorithmically generated for engagement farming."
-- "This tweet looks like it lost money in three different bull markets."
-- "You sound like someone who turns every conversation into a networking opportunity."
-- "The audacity of this post existing in a world with mute buttons."
-- "This reads like a LinkedIn post that got too comfortable."
-- "You write like someone who discovered 'stoicism' six months ago and hasn't recovered."
-- "This has that 'I turned my depression into a productivity system' smell."
 
 STRICT PROHIBITIONS:
 ${avoidPatterns.map((p) => `- Do NOT use ${p}`).join("\n")}
-- Do NOT summarize what the content says
-- Do NOT write more than 2 sentences
-- Do NOT be generic or use filler insults
-- Do NOT start with "Bro," "Oh," "Wow," or "Well,"
-- Do NOT repeat sentence structures across your response
 
-OUTPUT: One roast. 1-2 sentences. No preamble. No explanation. Just the roast.`;
+OUTPUT:
+One roast only.
+Maximum 2 sentences.
+No explanation.`;
 }
 
 function buildUserPrompt(content: string): string {
   return `CONTENT TO ROAST:
+
 ${content}
 
-Deliver the roast. React to the specific content. Make it hurt with accuracy.`;
+Generate the roast now.`;
+}
+
+function generateScore(roast: string): number {
+  return Math.min(
+    100,
+    Math.max(
+      60,
+      roast.length + Math.floor(Math.random() * 25)
+    )
+  );
 }
 
 export async function POST(request: NextRequest) {
+
   const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
   });
 
   try {
+
     const formData = await request.formData();
-    const raw = formData.get("text") ?? formData.get("content");
-    let content = raw ? raw.toString().trim() : "";
+
+    const raw =
+      formData.get("text") ??
+      formData.get("content");
+
+    let content = raw
+      ? raw.toString().trim()
+      : "";
 
     if (!content) {
+
       return NextResponse.json(
         {
-          error: "No content provided to roast",
-          results: [
-            {
-              name: "Consensus Judge",
-              roast: "You submitted nothing. Even your prompts have commitment issues.",
-            },
-          ],
+          error: "No content provided",
         },
         { status: 400 }
       );
     }
 
     if (content.length > 5000) {
-      content = content.slice(0, 5000) + "...";
+      content = content.slice(0, 5000);
     }
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: buildSystemPrompt() },
-        { role: "user", content: buildUserPrompt(content) },
-      ],
-      temperature: 0.95 + Math.random() * 0.3,
-      max_tokens: 75,
-      top_p: 0.95,
-    });
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: buildSystemPrompt(),
+          },
+          {
+            role: "user",
+            content: buildUserPrompt(content),
+          },
+        ],
+        temperature: 1,
+        max_tokens: 80,
+      });
 
-    const raw_roast = completion.choices[0]?.message?.content?.trim() ?? "";
-    const roast = raw_roast
-      .replace(/^["']|["']$/g, "")
-      .replace(/^(Roast:|Response:|Here's the roast:)\s*/i, "")
-      .trim() || "The content was so mid it broke my ability to care.";
+    const rawRoast =
+      completion.choices[0]?.message?.content?.trim() ??
+      "";
+
+    const roast =
+      rawRoast
+        .replace(/^["']|["']$/g, "")
+        .trim() ||
+      "The AI saw this and chose violence against itself.";
+
+    const score = generateScore(roast);
+
+    const roastData = {
+      id: Date.now(),
+      input: content,
+      roast,
+      score,
+      timestamp: Date.now(),
+    };
+
+    const filePath = path.join(
+      process.cwd(),
+      "data",
+      "roasts.json"
+    );
+
+    let existing = [];
+
+    if (fs.existsSync(filePath)) {
+
+      const file = fs.readFileSync(
+        filePath,
+        "utf8"
+      );
+
+      existing = JSON.parse(file);
+    }
+
+    existing.push(roastData);
+
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify(existing, null, 2)
+    );
 
     return NextResponse.json({
-      results: [{ name: "Consensus Judge", roast }],
+      results: [
+        {
+          name: "Consensus Judge",
+          roast,
+          score,
+        },
+      ],
     });
+
   } catch (error) {
-    console.error("Roast API error:", error);
 
-    const fallbacks = [
-      "The server crashed reading this. Even the machines are embarrassed for you.",
-      "Something broke trying to process this. The AI took one look and called in sick.",
-      "Technical error. The algorithm couldn't handle the levels of cringe detected.",
-      "Server timeout. This content weaponized the infrastructure against itself.",
-    ];
-
-    const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-    const status = error instanceof Error && error.message.includes("API") ? 503 : 500;
+    console.error(error);
 
     return NextResponse.json(
-      { error: "Service error", results: [{ name: "Consensus Judge", roast: fallback }] },
-      { status }
+      {
+        error: "Roast generation failed",
+        results: [
+          {
+            name: "Consensus Judge",
+            roast:
+              "The servers gave up halfway through judging you.",
+            score: 0,
+          },
+        ],
+      },
+      { status: 500 }
     );
   }
 }
 
 export async function GET() {
+
   return NextResponse.json(
     {
-      error: "Method not allowed. POST your text to get roasted.",
-      hint: "Submit FormData with field: text",
+      message: "Roast API running",
     },
-    { status: 405 }
+    { status: 200 }
   );
 }

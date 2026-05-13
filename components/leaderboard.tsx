@@ -1,49 +1,111 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { getEntries } from "@/lib/storage"
-import { RoastEntry } from "@/lib/types"
+import { useEffect, useState } from "react";
 
-export function Leaderboard() {
-  const [entries, setEntries] = useState<RoastEntry[]>([])
+interface RoastEntry {
+  id: number;
+  input: string;
+  roast: string;
+  score: number;
+  timestamp: number;
+}
+
+export default function Leaderboard() {
+
+  const [entries, setEntries] = useState<RoastEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchLeaderboard() {
+
+    try {
+
+      const res = await fetch(
+        "/api/leaderboard",
+        {
+          cache: "no-store",
+        }
+      );
+
+      const data = await res.json();
+
+      setEntries(data.entries || []);
+
+    } catch (err) {
+
+      console.error(err);
+
+    } finally {
+
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    setEntries(getEntries())
-  }, [])
+
+    fetchLeaderboard();
+
+    const interval = setInterval(() => {
+      fetchLeaderboard();
+    }, 2000);
+
+    return () => clearInterval(interval);
+
+  }, []);
 
   return (
-    <section
-      id="leaderboard"
-      className="border-t border-white/10 px-6 py-24"
-    >
-      <div className="mx-auto max-w-6xl">
-        <h2 className="mb-10 text-4xl font-bold">Leaderboard</h2>
+    <section className="w-full border-t border-white/10 py-24 px-6">
 
-        <div className="space-y-4">
-          {entries.map((entry, i) => (
+      <div className="max-w-5xl mx-auto">
+
+        <h2 className="text-6xl font-bold mb-12">
+          Leaderboard
+        </h2>
+
+        {loading && (
+          <p className="text-zinc-500">
+            Loading leaderboard...
+          </p>
+        )}
+
+        {!loading && entries.length === 0 && (
+          <p className="text-zinc-500">
+            No roasts yet.
+          </p>
+        )}
+
+        <div className="space-y-5">
+
+          {entries.map((entry, index) => (
+
             <div
               key={entry.id}
-              className="flex flex-col justify-between border border-white/10 p-4 md:flex-row"
+              className="border border-white/10 rounded-2xl bg-zinc-900 p-6"
             >
-              <div>
-                <p className="text-sm text-white/50">#{i + 1}</p>
-                <p className="mt-2">{entry.input}</p>
+
+              <div className="flex items-center justify-between mb-4">
+
+                <div className="text-2xl font-bold">
+                  #{index + 1}
+                </div>
+
+                <div className="text-green-400 font-semibold">
+                  {entry.score}/100
+                </div>
+
               </div>
 
-              <div className="mt-4 flex items-center gap-6 md:mt-0">
-                <p>{entry.score}/100</p>
-                <p>{entry.verdict}</p>
-              </div>
+              <p className="text-zinc-200 text-lg leading-relaxed">
+                {entry.roast}
+              </p>
+
             </div>
+
           ))}
 
-          {entries.length === 0 && (
-            <div className="border border-dashed border-white/20 p-10 text-center text-white/40">
-              nobody survived yet.
-            </div>
-          )}
         </div>
+
       </div>
+
     </section>
-  )
+  );
 }
