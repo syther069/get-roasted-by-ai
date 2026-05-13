@@ -1,7 +1,5 @@
 import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 
 const ROAST_STYLES = [
   "reply guy energy — dry, deadpan, one-liner",
@@ -52,15 +50,21 @@ const INTERNET_ARCHETYPES = [
 ];
 
 function getRandomElements<T>(arr: T[], count: number): T[] {
-  return [...arr].sort(() => Math.random() - 0.5).slice(0, count);
+  return [...arr]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count);
 }
 
 function buildSystemPrompt(): string {
   const style =
-    ROAST_STYLES[Math.floor(Math.random() * ROAST_STYLES.length)];
+    ROAST_STYLES[
+      Math.floor(Math.random() * ROAST_STYLES.length)
+    ];
 
   const tone =
-    TONE_MODIFIERS[Math.floor(Math.random() * TONE_MODIFIERS.length)];
+    TONE_MODIFIERS[
+      Math.floor(Math.random() * TONE_MODIFIERS.length)
+    ];
 
   const archetypes = getRandomElements(
     INTERNET_ARCHETYPES,
@@ -115,12 +119,20 @@ function generateScore(roast: string): number {
 }
 
 export async function POST(request: NextRequest) {
-
-  const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY,
-  });
-
   try {
+
+    if (!process.env.GROQ_API_KEY) {
+      return NextResponse.json(
+        {
+          error: "Missing GROQ_API_KEY",
+        },
+        { status: 500 }
+      );
+    }
+
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
 
     const formData = await request.formData();
 
@@ -133,7 +145,6 @@ export async function POST(request: NextRequest) {
       : "";
 
     if (!content) {
-
       return NextResponse.json(
         {
           error: "No content provided",
@@ -175,39 +186,6 @@ export async function POST(request: NextRequest) {
 
     const score = generateScore(roast);
 
-    const roastData = {
-      id: Date.now(),
-      input: content,
-      roast,
-      score,
-      timestamp: Date.now(),
-    };
-
-    const filePath = path.join(
-      process.cwd(),
-      "data",
-      "roasts.json"
-    );
-
-    let existing = [];
-
-    if (fs.existsSync(filePath)) {
-
-      const file = fs.readFileSync(
-        filePath,
-        "utf8"
-      );
-
-      existing = JSON.parse(file);
-    }
-
-    existing.push(roastData);
-
-    fs.writeFileSync(
-      filePath,
-      JSON.stringify(existing, null, 2)
-    );
-
     return NextResponse.json({
       results: [
         {
@@ -220,19 +198,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
 
-    console.error(error);
+    console.error("ROAST API ERROR:", error);
 
     return NextResponse.json(
       {
         error: "Roast generation failed",
-        results: [
-          {
-            name: "Consensus Judge",
-            roast:
-              "The servers gave up halfway through judging you.",
-            score: 0,
-          },
-        ],
       },
       { status: 500 }
     );
@@ -240,7 +210,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-
   return NextResponse.json(
     {
       message: "Roast API running",
