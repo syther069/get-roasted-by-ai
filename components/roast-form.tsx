@@ -1,118 +1,219 @@
-"use client";
+import Groq from "groq-sdk";
+import { NextRequest, NextResponse } from "next/server";
 
-import { useState } from "react";
+const ROAST_STYLES = [
+  "reply guy energy — dry, deadpan, one-liner",
+  "quote tweet savage — brief, cuts deep, no mercy",
+  "group chat chaos — chaotic, internet-brained, unhinged but accurate",
+  "silent observer mode — clinical, detached, makes it worse",
+  "main character syndrome detector — exposes the delusion gently then not gently",
+  "chronically online linguist — speaks fluent internet, dissects the vibe",
+  "concerned friend mode — starts caring, ends devastating",
+];
 
-interface RoastResult {
-  name: string;
-  roast: string;
+const TONE_MODIFIERS = [
+  "be extremely dry and clinical",
+  "be chaotically unhinged but accurate",
+  "be quietly devastating",
+  "be sarcastically supportive",
+  "be forensically observational",
+  "channel someone who has seen too much of the internet",
+  "be the voice of every comment section",
+];
+
+const AVOID_PATTERNS = [
+  '"bro" more than once',
+  '"this post" as a sentence starter',
+  '"radiates" or "energy" as the main descriptor',
+  '"founder" unless absolutely necessary',
+  "starting multiple sentences the same way",
+  'generic filler like "you look cringe" or "this is cringe"',
+  "name/profession extraction templates",
+  "summarizing what the content says",
+];
+
+const INTERNET_ARCHETYPES = [
+  "LinkedIn thought leader",
+  "crypto bag holder",
+  "startup bro manifesting",
+  "sigma male in training",
+  "AI bro who just discovered prompting",
+  "fake hustle merchant",
+  "engagement farmer",
+  "motivation poster generator",
+  "Discord server owner energy",
+  "someone who says 'big things coming' quarterly",
+  "NPC with a personal brand",
+  "person who treats their feed as a vision board",
+  "chronically online philosopher",
+  "someone who learned networking but not conversation",
+];
+
+function getRandomElements<T>(arr: T[], count: number): T[] {
+  return [...arr]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count);
 }
 
-export default function RoastForm() {
-  const [text, setText] = useState("");
-  const [roast, setRoast] = useState<RoastResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function buildSystemPrompt(): string {
+  const style =
+    ROAST_STYLES[
+      Math.floor(Math.random() * ROAST_STYLES.length)
+    ];
 
-  async function handleSubmit() {
-    if (!text.trim()) return;
+  const tone =
+    TONE_MODIFIERS[
+      Math.floor(Math.random() * TONE_MODIFIERS.length)
+    ];
 
-    setLoading(true);
-    setError(null);
-    setRoast(null);
+  const archetypes = getRandomElements(
+    INTERNET_ARCHETYPES,
+    4
+  );
 
-    try {
-      const formData = new FormData();
-      formData.append("text", text.trim());
+  const avoidPatterns = getRandomElements(
+    AVOID_PATTERNS,
+    4
+  );
 
-      const res = await fetch("/api/roast", {
-        method: "POST",
-        body: formData,
+  return `You are a razor-sharp internet-native roast machine.
+
+CURRENT STYLE MODE: ${style}
+TONE INSTRUCTION: ${tone}
+
+YOUR ROAST MUST:
+- React to the vibe and behavior pattern
+- Feel like a real internet reply
+- Be funny and devastating
+- Be specific to the content
+- Never sound repetitive
+
+ARCHETYPES:
+${archetypes.map((a) => `- ${a}`).join("\n")}
+
+STRICT PROHIBITIONS:
+${avoidPatterns.map((p) => `- Do NOT use ${p}`).join("\n")}
+
+OUTPUT:
+One roast only.
+Maximum 2 sentences.
+No explanation.`;
+}
+
+function buildUserPrompt(content: string): string {
+  return `CONTENT TO ROAST:
+
+${content}
+
+Generate the roast now.`;
+}
+
+function generateScore(roast: string): number {
+  return Math.min(
+    100,
+    Math.max(
+      60,
+      roast.length + Math.floor(Math.random() * 25)
+    )
+  );
+}
+
+export async function POST(request: NextRequest) {
+  try {
+
+    if (!process.env.GROQ_API_KEY) {
+      return NextResponse.json(
+        {
+          error: "Missing GROQ_API_KEY",
+        },
+        { status: 500 }
+      );
+    }
+
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
+
+    const formData = await request.formData();
+
+    const raw =
+      formData.get("text") ??
+      formData.get("content");
+
+    let content = raw
+      ? raw.toString().trim()
+      : "";
+
+    if (!content) {
+      return NextResponse.json(
+        {
+          error: "No content provided",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (content.length > 5000) {
+      content = content.slice(0, 5000);
+    }
+
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: buildSystemPrompt(),
+          },
+          {
+            role: "user",
+            content: buildUserPrompt(content),
+          },
+        ],
+        temperature: 1,
+        max_tokens: 80,
       });
 
-      const data = await res.json();
+    const rawRoast =
+      completion.choices[0]?.message?.content?.trim() ??
+      "";
 
-      if (!res.ok) {
-        console.error("API ERROR:", data);
-        setError(data.error || "Roast generation failed");
-        return;
-      }
+    const roast =
+      rawRoast
+        .replace(/^["']|["']$/g, "")
+        .trim() ||
+      "The AI saw this and chose violence against itself.";
 
-      if (data.results?.[0]) {
-        setRoast(data.results[0]);
-      } else {
-        setError("No roast returned.");
-      }
-    } catch (err) {
-      console.error("FETCH ERROR:", err);
-      setError("Failed to reach the server.");
-    } finally {
-      setLoading(false);
-    }
+    const score = generateScore(roast);
+
+    return NextResponse.json({
+      results: [
+        {
+          name: "Consensus Judge",
+          roast,
+          score,
+        },
+      ],
+    });
+
+  } catch (error) {
+
+    console.error("ROAST API ERROR:", error);
+
+    return NextResponse.json(
+      {
+        error: "Roast generation failed",
+      },
+      { status: 500 }
+    );
   }
+}
 
-  function handleKeyDown(
-    e: React.KeyboardEvent<HTMLTextAreaElement>
-  ) {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      handleSubmit();
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-xl space-y-6">
-
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Roast AI
-          </h1>
-
-          <p className="text-zinc-400 text-sm">
-            Paste a bio, tweet, LinkedIn post, or any text.
-            Get roasted.
-          </p>
-        </div>
-
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Paste your bio, tweet, or any text here..."
-          rows={6}
-          className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-500 transition"
-        />
-
-        <button
-          onClick={handleSubmit}
-          disabled={loading || !text.trim()}
-          className="w-full bg-white text-black font-semibold py-3 rounded-xl text-sm hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed transition"
-        >
-          {loading ? "Roasting..." : "Roast Me"}
-        </button>
-
-        {error && (
-          <div className="bg-red-950 border border-red-700 text-red-300 text-sm px-4 py-3 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        {roast && (
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl px-5 py-4 space-y-2">
-            <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium">
-              {roast.name}
-            </p>
-
-            <p className="text-white text-base leading-relaxed">
-              {roast.roast}
-            </p>
-          </div>
-        )}
-
-        <p className="text-zinc-600 text-xs text-center">
-          Ctrl + Enter to submit
-        </p>
-
-      </div>
-    </div>
+export async function GET() {
+  return NextResponse.json(
+    {
+      message: "Roast API running",
+    },
+    { status: 200 }
   );
 }
