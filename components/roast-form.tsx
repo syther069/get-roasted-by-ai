@@ -32,21 +32,27 @@ export default function RoastForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong.");
+        console.error("API ERROR:", data);
+        setError(data.error || "Roast generation failed");
         return;
       }
 
       if (data.results?.[0]) {
         setRoast(data.results[0]);
+      } else {
+        setError("No roast returned.");
       }
-    } catch {
-      setError("Failed to reach the server. Try again.");
+    } catch (err) {
+      console.error("FETCH ERROR:", err);
+      setError("Failed to reach the server.");
     } finally {
       setLoading(false);
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+  function handleKeyDown(
+    e: React.KeyboardEvent<HTMLTextAreaElement>
+  ) {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       handleSubmit();
     }
@@ -55,10 +61,15 @@ export default function RoastForm() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-xl space-y-6">
+
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Roast AI</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Roast AI
+          </h1>
+
           <p className="text-zinc-400 text-sm">
-            Paste a bio, tweet, LinkedIn post, or any text. Get roasted.
+            Paste a bio, tweet, LinkedIn post, or any text.
+            Get roasted.
           </p>
         </div>
 
@@ -90,13 +101,17 @@ export default function RoastForm() {
             <p className="text-xs text-zinc-500 uppercase tracking-widest font-medium">
               {roast.name}
             </p>
-            <p className="text-white text-base leading-relaxed">{roast.roast}</p>
+
+            <p className="text-white text-base leading-relaxed">
+              {roast.roast}
+            </p>
           </div>
         )}
 
         <p className="text-zinc-600 text-xs text-center">
-          ⌘ + Enter to submit
+          Ctrl + Enter to submit
         </p>
+
       </div>
     </div>
   );
