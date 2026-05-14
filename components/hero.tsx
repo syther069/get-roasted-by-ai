@@ -1,53 +1,56 @@
 export function Hero() {
   return (
-    <section className="border-b border-white/10 px-6 py-32">
+    <section className="border-b border-white/[0.06] py-24 md:py-32">
       <div className="mx-auto max-w-7xl">
-        <p className="mb-8 text-xs uppercase tracking-[0.5em] text-white/40">
-          Consensus achieved. Ego destroyed.
+
+        {/* Eyebrow */}
+        <p className="mb-10 text-[11px] uppercase tracking-[0.4em] text-white/30 font-medium">
+          Subjective AI Consensus Engine Inspired by GenLayer
         </p>
 
-        <h1 className="max-w-6xl text-6xl font-semibold leading-[0.95] tracking-[-0.06em] md:text-8xl">
+        {/* Headline */}
+        <h1 className="max-w-4xl text-5xl font-semibold leading-[1.05] tracking-[-0.03em] text-white md:text-7xl">
           AI validators
           <br />
           roasting humans
           <br />
-          for sport.
+          <span className="text-white/40">for sport.</span>
         </h1>
 
-        <div className="mt-16 grid max-w-5xl gap-12 border-t border-white/10 pt-10 md:grid-cols-3">
-          <div>
-            <p className="mb-3 text-sm font-semibold">
+        {/* Feature grid */}
+        <div className="mt-16 grid max-w-4xl gap-0 border-t border-white/[0.06] pt-10 md:grid-cols-3">
+
+          <div className="pr-8 md:border-r border-white/[0.06]">
+            <p className="mb-2.5 text-[13px] font-medium text-white">
               Intelligent Contracts
             </p>
-
-            <p className="text-sm leading-7 text-white/40">
+            <p className="text-[13px] leading-6 text-white/40 font-normal">
               Contracts that interpret human input,
               URLs, bios, and internet identity.
             </p>
           </div>
 
-          <div>
-            <p className="mb-3 text-sm font-semibold">
+          <div className="px-8 mt-8 md:mt-0 md:border-r border-white/[0.06]">
+            <p className="mb-2.5 text-[13px] font-medium text-white">
               Validator Consensus
             </p>
-
-            <p className="text-sm leading-7 text-white/40">
+            <p className="text-[13px] leading-6 text-white/40 font-normal">
               Multiple AI validators independently
               generate roasts before reaching
               consensus.
             </p>
           </div>
 
-          <div>
-            <p className="mb-3 text-sm font-semibold">
+          <div className="pl-8 mt-8 md:mt-0">
+            <p className="mb-2.5 text-[13px] font-medium text-white">
               Optimistic Democracy
             </p>
-
-            <p className="text-sm leading-7 text-white/40">
+            <p className="text-[13px] leading-6 text-white/40 font-normal">
               The funniest roast survives validator
               agreement and wins finality.
             </p>
           </div>
+
         </div>
       </div>
     </section>

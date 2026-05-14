@@ -21,17 +21,6 @@ const TONE_MODIFIERS = [
   "be the voice of every comment section",
 ];
 
-const AVOID_PATTERNS = [
-  '"bro" more than once',
-  '"this post" as a sentence starter',
-  '"radiates" or "energy" as the main descriptor',
-  '"founder" unless absolutely necessary',
-  "starting multiple sentences the same way",
-  'generic filler like "you look cringe" or "this is cringe"',
-  "name/profession extraction templates",
-  "summarizing what the content says",
-];
-
 const INTERNET_ARCHETYPES = [
   "LinkedIn thought leader",
   "crypto bag holder",
@@ -71,49 +60,52 @@ function buildSystemPrompt(): string {
     4
   );
 
-  const avoidPatterns = getRandomElements(
-    AVOID_PATTERNS,
-    4
-  );
+  return `
+You are RoastLayer AI.
 
-  return `You are a razor-sharp internet-native roast machine.
+You are a razor-sharp internet-native roast engine that simulates subjective AI validator consensus.
 
-CURRENT STYLE MODE: ${style}
-TONE INSTRUCTION: ${tone}
+STYLE MODE:
+${style}
 
-YOUR ROAST MUST:
-- React to the vibe and behavior pattern
-- Feel like a real internet reply
-- Be funny and devastating
-- Be specific to the content
-- Never sound repetitive
+TONE:
+${tone}
 
-ARCHETYPES:
+YOUR JOB:
+- Generate one devastatingly accurate roast
+- Roast the vibe, behavior, psychology, and energy
+- Sound like a real internet reply
+- Be clever, specific, and concise
+- Avoid generic insults
+- Avoid repetitive phrasing
+- Maximum 2 sentences
+
+ARCHETYPES TO DETECT:
 ${archetypes.map((a) => `- ${a}`).join("\n")}
 
-STRICT PROHIBITIONS:
-${avoidPatterns.map((p) => `- Do NOT use ${p}`).join("\n")}
-
 OUTPUT:
-One roast only.
-Maximum 2 sentences.
-No explanation.`;
+Only the roast.
+No intro.
+No explanation.
+`;
 }
 
 function buildUserPrompt(content: string): string {
-  return `CONTENT TO ROAST:
+  return `
+CONTENT TO ANALYZE:
 
 ${content}
 
-Generate the roast now.`;
+Generate the consensus roast now.
+`;
 }
 
 function generateScore(roast: string): number {
   return Math.min(
     100,
     Math.max(
-      60,
-      roast.length + Math.floor(Math.random() * 25)
+      72,
+      roast.length + Math.floor(Math.random() * 18)
     )
   );
 }
@@ -171,7 +163,8 @@ export async function POST(request: NextRequest) {
           },
         ],
         temperature: 1,
-        max_tokens: 80,
+        max_tokens: 90,
+        top_p: 0.95,
       });
 
     const rawRoast =
@@ -181,8 +174,9 @@ export async function POST(request: NextRequest) {
     const roast =
       rawRoast
         .replace(/^["']|["']$/g, "")
+        .replace(/^(Roast:|Response:)\s*/i, "")
         .trim() ||
-      "The AI saw this and chose violence against itself.";
+      "The AI consensus engine collectively decided this was beyond rehabilitation.";
 
     const score = generateScore(roast);
 
